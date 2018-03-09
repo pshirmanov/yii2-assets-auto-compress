@@ -5,6 +5,7 @@
  * @copyright (c) 2010 SkeekS
  * @date 15.09.2017
  */
+
 namespace skeeks\yii2\assetsAuto;
 
 use skeeks\yii2\assetsAuto\components\HtmlCompressor;
@@ -42,32 +43,24 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
      */
     public $readFileTimeout = 1;
 
-
-
     /**
      * Enable minification js in html code
      * @var bool
      */
     public $jsCompress = true;
+
     /**
      * Cut comments during processing js
      * @var bool
      */
     public $jsCompressFlaggedComments = true;
 
-
-
-
     /**
      * Enable minification css in html code
      * @var bool
      */
     public $cssCompress = true;
-
-
     public $cssOptions = [];
-
-
 
 
     /**
@@ -101,13 +94,11 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
     public $cssFileBottomLoadOnJs = false;
 
 
-
     /**
      * Turning association js files
      * @var bool
      */
     public $jsFileCompile = true;
-
     public $jsOptions = [];
 
     /**
@@ -128,28 +119,34 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
      */
     public $jsFileCompressFlaggedComments = true;
 
-
     /**
      * Enable compression html
      * @var bool
      */
     public $htmlCompress = true;
+
     /**
      * @var array options for compressing output result
      *   * extra - use more compact algorithm
      *   * no-comments - cut all the html comments
      */
     public $htmlCompressOptions = [
-        'extra'         => false,
-        'no-comments'   => true
+        'extra'       => false,
+        'no-comments' => true
     ];
-
 
     /**
      * Do not connect the js files when all pjax requests.
      * @var bool
      */
     public $noIncludeJsFilesOnPjax = true;
+
+    /**
+     * Folder JS and CSS
+     * @var string
+     */
+    public $cssFolder = 'css-compress';
+    public $jsFolder = 'js-compress';
 
     /**
      * @var string
@@ -179,43 +176,35 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
      */
     public function bootstrap($app)
     {
-        if ($app instanceof \yii\web\Application)
-        {
-            $app->view->on(View::EVENT_END_PAGE, function(Event $e) use ($app)
-            {
+        if ($app instanceof \yii\web\Application) {
+            $app->view->on(View::EVENT_END_PAGE, function (Event $e) use ($app) {
                 /**
                  * @var $view View
                  */
                 $view = $e->sender;
 
-                if ($this->enabled && $view instanceof View && $app->response->format == Response::FORMAT_HTML && !$app->request->isAjax && !$app->request->isPjax)
-                {
+                if ($this->enabled && $view instanceof View && $app->response->format == Response::FORMAT_HTML && !$app->request->isAjax && !$app->request->isPjax) {
                     \Yii::beginProfile('Compress assets');
                     $this->_processing($view);
                     \Yii::endProfile('Compress assets');
                 }
 
                 //TODO:: Think about it
-                if ($this->enabled && $app->request->isPjax && $this->noIncludeJsFilesOnPjax)
-                {
+                if ($this->enabled && $app->request->isPjax && $this->noIncludeJsFilesOnPjax) {
                     \Yii::$app->view->jsFiles = null;
                 }
             });
 
             //Html compressing
-            $app->response->on(\yii\web\Response::EVENT_BEFORE_SEND, function (\yii\base\Event $event) use ($app)
-            {
+            $app->response->on(\yii\web\Response::EVENT_BEFORE_SEND, function (\yii\base\Event $event) use ($app) {
                 $response = $event->sender;
 
-                if ($this->enabled && $this->htmlCompress && $response->format == \yii\web\Response::FORMAT_HTML && !$app->request->isAjax && !$app->request->isPjax)
-                {
-                    if (!empty($response->data))
-                    {
+                if ($this->enabled && $this->htmlCompress && $response->format == \yii\web\Response::FORMAT_HTML && !$app->request->isAjax && !$app->request->isPjax) {
+                    if (!empty($response->data)) {
                         $response->data = $this->_processingHtml($response->data);
                     }
 
-                    if (!empty($response->content))
-                    {
+                    if (!empty($response->content)) {
                         $response->content = $this->_processingHtml($response->content);
                     }
                 }
@@ -229,7 +218,7 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
      */
     public function getSettingsHash()
     {
-        return serialize((array) $this);
+        return serialize((array)$this);
     }
 
     /**
@@ -238,13 +227,10 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
     protected function _processing(View $view)
     {
         //Компиляция файлов js в один.
-        if ($view->jsFiles && $this->jsFileCompile)
-        {
+        if ($view->jsFiles && $this->jsFileCompile) {
             \Yii::beginProfile('Compress js files');
-            foreach ($view->jsFiles as $pos => $files)
-            {
-                if ($files)
-                {
+            foreach ($view->jsFiles as $pos => $files) {
+                if ($files) {
                     $view->jsFiles[$pos] = $this->_processingJsFiles($files);
                 }
             }
@@ -252,13 +238,10 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
         }
 
         //Компиляция js кода который встречается на странице
-        if ($view->js && $this->jsCompress)
-        {
+        if ($view->js && $this->jsCompress) {
             \Yii::beginProfile('Compress js code');
-            foreach ($view->js as $pos => $parts)
-            {
-                if ($parts)
-                {
+            foreach ($view->js as $pos => $parts) {
+                if ($parts) {
                     $view->js[$pos] = $this->_processingJs($parts);
                 }
             }
@@ -267,8 +250,7 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
 
 
         //Компиляция css файлов который встречается на странице
-        if ($view->cssFiles && $this->cssFileCompile)
-        {
+        if ($view->cssFiles && $this->cssFileCompile) {
             \Yii::beginProfile('Compress css files');
 
             $view->cssFiles = $this->_processingCssFiles($view->cssFiles);
@@ -276,8 +258,7 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
         }
 
         //Компиляция css файлов который встречается на странице
-        if ($view->css && $this->cssCompress)
-        {
+        if ($view->css && $this->cssCompress) {
             \Yii::beginProfile('Compress css code');
 
             $view->css = $this->_processingCss($view->css);
@@ -285,8 +266,7 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
             \Yii::endProfile('Compress css code');
         }
         //Компиляция css файлов который встречается на странице
-        if ($view->css && $this->cssCompress)
-        {
+        if ($view->css && $this->cssCompress) {
             \Yii::beginProfile('Compress css code');
 
             $view->css = $this->_processingCss($view->css);
@@ -296,41 +276,34 @@ class AssetsAutoCompressComponent extends Component implements BootstrapInterfac
 
 
         //Перенос файлов css вниз страницы, где файлы js View::POS_END
-        if ($view->cssFiles && $this->cssFileBottom)
-        {
+        if ($view->cssFiles && $this->cssFileBottom) {
             \Yii::beginProfile('Moving css files bottom');
 
-            if ($this->cssFileBottomLoadOnJs)
-            {
+            if ($this->cssFileBottomLoadOnJs) {
                 \Yii::beginProfile('load css on js');
 
-                    $cssFilesString = implode("", $view->cssFiles);
-                    $view->cssFiles = [];
+                $cssFilesString = implode("", $view->cssFiles);
+                $view->cssFiles = [];
 
-                    $script = Html::script(new JsExpression(<<<JS
+                $script = Html::script(new JsExpression(<<<JS
         document.write('{$cssFilesString}');
 JS
-        ));
+                ));
 
-                    if (ArrayHelper::getValue($view->jsFiles, View::POS_END))
-                    {
-                        $view->jsFiles[View::POS_END] = ArrayHelper::merge($view->jsFiles[View::POS_END], [$script]);
+                if (ArrayHelper::getValue($view->jsFiles, View::POS_END)) {
+                    $view->jsFiles[View::POS_END] = ArrayHelper::merge($view->jsFiles[View::POS_END], [$script]);
 
-                    } else
-                    {
-                        $view->jsFiles[View::POS_END][] = $script;
-                    }
+                } else {
+                    $view->jsFiles[View::POS_END][] = $script;
+                }
 
 
                 \Yii::endProfile('load css on js');
-            } else
-            {
-                if (ArrayHelper::getValue($view->jsFiles, View::POS_END))
-                {
+            } else {
+                if (ArrayHelper::getValue($view->jsFiles, View::POS_END)) {
                     $view->jsFiles[View::POS_END] = ArrayHelper::merge($view->cssFiles, $view->jsFiles[View::POS_END]);
 
-                } else
-                {
+                } else {
                     $view->jsFiles[View::POS_END] = $view->cssFiles;
                 }
 
@@ -361,10 +334,8 @@ JS
     {
         $result = [];
 
-        if ($parts)
-        {
-            foreach ($parts as $key => $value)
-            {
+        if ($parts) {
+            foreach ($parts as $key => $value) {
                 $result[$key] = \JShrink\Minifier::minify($value, ['flaggedComments' => $this->jsCompressFlaggedComments]);
             }
         }
@@ -378,17 +349,14 @@ JS
      */
     protected function _processingJsFiles($files = [])
     {
-        $fileName   =  md5( implode(array_keys($files)) . $this->getSettingsHash()) . '.js';
-        $publicUrl  = \Yii::$app->assetManager->baseUrl . '/js-compress/' . $fileName;
-        //$publicUrl  = \Yii::getAlias('@web/assets/js-compress/' . $fileName);
+        $fileName = md5(implode(array_keys($files)) . $this->getSettingsHash()) . '.js';
+        $publicUrl = \Yii::$app->assetManager->baseUrl . '/' . $this->jsFolder . '/' . $fileName;
 
-        $rootDir    = \Yii::$app->assetManager->basePath . '/js-compress';
-        //$rootDir    = \Yii::getAlias('@webroot/assets/js-compress');
-        $rootUrl    = $rootDir . '/' . $fileName;
+        $rootDir = \Yii::$app->assetManager->basePath . '/' . $this->jsFolder;
+        $rootUrl = $rootDir . '/' . $fileName;
 
-        if (file_exists($rootUrl))
-        {
-            $resultFiles        = [];
+        if (file_exists($rootUrl)) {
+            $resultFiles = [];
 
             if (!$this->jsFileRemouteCompile) {
                 foreach ($files as $fileCode => $fileTag) {
@@ -398,64 +366,52 @@ JS
                 }
             }
 
-
-            $publicUrl                  = $publicUrl . "?v=" . filemtime($rootUrl);
-            $resultFiles[$publicUrl]    = Html::jsFile($publicUrl, $this->jsOptions);
+            $publicUrl = $publicUrl . "?v=" . filemtime($rootUrl);
+            $resultFiles[$publicUrl] = Html::jsFile($publicUrl, $this->jsOptions);
             return $resultFiles;
         }
 
         //Reading the contents of the files
-        try
-        {
-            $resultContent  = [];
-            $resultFiles    = [];
-            foreach ($files as $fileCode => $fileTag)
-            {
-                if (Url::isRelative($fileCode))
-                {
+        try {
+            $resultContent = [];
+            $resultFiles = [];
+            foreach ($files as $fileCode => $fileTag) {
+                if (Url::isRelative($fileCode)) {
                     if ($pos = strpos($fileCode, "?")) {
                         $fileCode = substr($fileCode, 0, $pos);
                     }
 
                     $fileCode = $this->webroot . $fileCode;
-                    $contentFile = $this->readLocalFile( $fileCode );
+                    $contentFile = $this->readLocalFile($fileCode);
 
                     /**\Yii::info("file: " . \Yii::getAlias(\Yii::$app->assetManager->basePath . $fileCode), self::class);*/
                     //$contentFile = $this->fileGetContents( Url::to(\Yii::getAlias($tmpFileCode), true) );
                     //$contentFile = $this->fileGetContents( \Yii::$app->assetManager->basePath . $fileCode );
                     $resultContent[] = trim($contentFile) . "\n;";;
-                } else
-                {
-                    if ($this->jsFileRemouteCompile)
-                    {
+                } else {
+                    if ($this->jsFileRemouteCompile) {
                         //Try to download the deleted file
-                        $contentFile = $this->fileGetContents( $fileCode );
+                        $contentFile = $this->fileGetContents($fileCode);
                         $resultContent[] = trim($contentFile);
-                    } else
-                    {
+                    } else {
                         $resultFiles[$fileCode] = $fileTag;
                     }
                 }
             }
-        } catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             \Yii::error(__METHOD__ . ": " . $e->getMessage(), static::class);
             return $files;
         }
 
-        if ($resultContent)
-        {
+        if ($resultContent) {
             $content = implode($resultContent, ";\n");
-            if (!is_dir($rootDir))
-            {
-                if (!FileHelper::createDirectory($rootDir, 0777))
-                {
+            if (!is_dir($rootDir)) {
+                if (!FileHelper::createDirectory($rootDir, 0777)) {
                     return $files;
                 }
             }
 
-            if ($this->jsFileCompress)
-            {
+            if ($this->jsFileCompress) {
                 $content = \JShrink\Minifier::minify($content, ['flaggedComments' => $this->jsFileCompressFlaggedComments]);
             }
 
@@ -471,13 +427,11 @@ JS
         }
 
 
-        if (file_exists($rootUrl))
-        {
-            $publicUrl                  = $publicUrl . "?v=" . filemtime($rootUrl);
-            $resultFiles[$publicUrl]    = Html::jsFile($publicUrl, $this->jsOptions);
+        if (file_exists($rootUrl)) {
+            $publicUrl = $publicUrl . "?v=" . filemtime($rootUrl);
+            $resultFiles[$publicUrl] = Html::jsFile($publicUrl, $this->jsOptions);
             return $resultFiles;
-        } else
-        {
+        } else {
             return $files;
         }
     }
@@ -488,17 +442,14 @@ JS
      */
     protected function _processingCssFiles($files = [])
     {
-        $fileName   =  md5( implode(array_keys($files)) . $this->getSettingsHash() ) . '.css';
-        $publicUrl  = \Yii::$app->assetManager->baseUrl . '/css-compress/' . $fileName;
-        //$publicUrl  = \Yii::getAlias('@web/assets/css-compress/' . $fileName);
+        $fileName = md5(implode(array_keys($files)) . $this->getSettingsHash()) . '.css';
+        $publicUrl = \Yii::$app->assetManager->baseUrl . '/' . $this->cssFolder . '/' . $fileName;
 
-        $rootDir    = \Yii::$app->assetManager->basePath . '/css-compress';
-        //$rootDir    = \Yii::getAlias('@webroot/assets/css-compress');
-        $rootUrl    = $rootDir . '/' . $fileName;
+        $rootDir = \Yii::$app->assetManager->basePath . '/' . $this->cssFolder;
+        $rootUrl = $rootDir . '/' . $fileName;
 
-        if (file_exists($rootUrl))
-        {
-            $resultFiles        = [];
+        if (file_exists($rootUrl)) {
+            $resultFiles = [];
 
             if (!$this->cssFileRemouteCompile) {
                 foreach ($files as $fileCode => $fileTag) {
@@ -508,27 +459,24 @@ JS
                 }
             }
 
-            $publicUrl                  = $publicUrl . "?v=" . filemtime($rootUrl);
-            $resultFiles[$publicUrl]    = Html::cssFile($publicUrl, $this->cssOptions);
+            $publicUrl = $publicUrl . "?v=" . filemtime($rootUrl);
+            $resultFiles[$publicUrl] = Html::cssFile($publicUrl, $this->cssOptions);
             return $resultFiles;
         }
 
         //Reading the contents of the files
-        try
-        {
-            $resultContent  = [];
-            $resultFiles    = [];
-            foreach ($files as $fileCode => $fileTag)
-            {
-                if (Url::isRelative($fileCode))
-                {
+        try {
+            $resultContent = [];
+            $resultFiles = [];
+            foreach ($files as $fileCode => $fileTag) {
+                if (Url::isRelative($fileCode)) {
                     $fileCodeLocal = $fileCode;
                     if ($pos = strpos($fileCode, "?")) {
                         $fileCodeLocal = substr($fileCodeLocal, 0, $pos);
                     }
 
                     $fileCodeLocal = $this->webroot . $fileCodeLocal;
-                    $contentTmp = trim($this->readLocalFile( $fileCodeLocal ));
+                    $contentTmp = trim($this->readLocalFile($fileCodeLocal));
 
                     //$contentTmp         = trim($this->fileGetContents( Url::to(\Yii::getAlias($fileCode), true) ));
 
@@ -536,48 +484,40 @@ JS
                     unset($fileCodeTmp[count($fileCodeTmp) - 1]);
                     $prependRelativePath = implode("/", $fileCodeTmp) . "/";
 
-                    $contentTmp    = \Minify_CSS::minify($contentTmp, [
+                    $contentTmp = \Minify_CSS::minify($contentTmp, [
                         "prependRelativePath" => $prependRelativePath,
 
-                        'compress'          => true,
-                        'removeCharsets'    => true,
-                        'preserveComments'  => true,
+                        'compress'         => true,
+                        'removeCharsets'   => true,
+                        'preserveComments' => true,
                     ]);
 
                     //$contentTmp = \CssMin::minify($contentTmp);
 
                     $resultContent[] = $contentTmp;
-                } else
-                {
-                    if ($this->cssFileRemouteCompile)
-                    {
+                } else {
+                    if ($this->cssFileRemouteCompile) {
                         //Try to download the deleted file
-                        $resultContent[] = trim($this->fileGetContents( $fileCode ));
-                    } else
-                    {
+                        $resultContent[] = trim($this->fileGetContents($fileCode));
+                    } else {
                         $resultFiles[$fileCode] = $fileTag;
                     }
                 }
             }
-        } catch (\Exception $e)
-        {
+        } catch (\Exception $e) {
             \Yii::error(__METHOD__ . ": " . $e->getMessage(), static::class);
             return $files;
         }
 
-        if ($resultContent)
-        {
+        if ($resultContent) {
             $content = implode($resultContent, "\n");
-            if (!is_dir($rootDir))
-            {
-                if (!FileHelper::createDirectory($rootDir, 0777))
-                {
+            if (!is_dir($rootDir)) {
+                if (!FileHelper::createDirectory($rootDir, 0777)) {
                     return $files;
                 }
             }
 
-            if ($this->cssFileCompress)
-            {
+            if ($this->cssFileCompress) {
                 $content = \CssMin::minify($content);
             }
 
@@ -594,13 +534,11 @@ JS
         }
 
 
-        if (file_exists($rootUrl))
-        {
-            $publicUrl                  = $publicUrl . "?v=" . filemtime($rootUrl);
-            $resultFiles[$publicUrl]    = Html::cssFile($publicUrl, $this->cssOptions);
+        if (file_exists($rootUrl)) {
+            $publicUrl = $publicUrl . "?v=" . filemtime($rootUrl);
+            $resultFiles[$publicUrl] = Html::cssFile($publicUrl, $this->cssOptions);
             return $resultFiles;
-        } else
-        {
+        } else {
             return $files;
         }
     }
@@ -614,10 +552,8 @@ JS
     {
         $newCss = [];
 
-        foreach ($css as $code => $value)
-        {
-            $newCss[] = preg_replace_callback('/<style\b[^>]*>(.*)<\/style>/is', function($match)
-            {
+        foreach ($css as $code => $value) {
+            $newCss[] = preg_replace_callback('/<style\b[^>]*>(.*)<\/style>/is', function ($match) {
                 return $match[1];
             }, $value);
         }
@@ -637,13 +573,13 @@ JS
     {
         $client = new Client();
         $response = $client->createRequest()
-                    ->setMethod('get')
-                    ->setUrl($file)
-                    ->addHeaders(['user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'])
-                    ->setOptions([
-                        'timeout' => $this->readFileTimeout, // set timeout to 1 seconds for the case server is not responding
-                    ])
-                    ->send();
+            ->setMethod('get')
+            ->setUrl($file)
+            ->addHeaders(['user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'])
+            ->setOptions([
+                'timeout' => $this->readFileTimeout, // set timeout to 1 seconds for the case server is not responding
+            ])
+            ->send();
 
         if ($response->isOk) {
             return $response->content;
