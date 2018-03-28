@@ -360,7 +360,7 @@ JS
 
             if (!$this->jsFileRemouteCompile) {
                 foreach ($files as $fileCode => $fileTag) {
-                    if (!Url::isRelative($fileCode)) {
+                    if (!Url::isRelative($fileCode) || $fileCode == 'recaptcha-api') {
                         $resultFiles[$fileCode] = $fileTag;
                     }
                 }
