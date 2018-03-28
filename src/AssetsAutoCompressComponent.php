@@ -376,7 +376,7 @@ JS
             $resultContent = [];
             $resultFiles = [];
             foreach ($files as $fileCode => $fileTag) {
-                if (Url::isRelative($fileCode)) {
+                if (Url::isRelative($fileCode) && $fileCode != 'recaptcha-api') {
                     if ($pos = strpos($fileCode, "?")) {
                         $fileCode = substr($fileCode, 0, $pos);
                     }
